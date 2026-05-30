@@ -14,22 +14,39 @@ jobs:
     - name: Clone MNN 3.5.0
       run: git clone --depth 1 --branch 3.5.0 https://github.com/alibaba/MNN.git
       
-    - name: Setup Java 11
+    - name: Setup JDK 17 for SDK Installation
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Install Android SDK and NDK
+      run: |
+        # 安装 Android SDK
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdtools.zip
+        sudo mkdir -p /opt/android-sdk
+        sudo unzip -q cmdtools.zip -d /opt/android-sdk
+        sudo mv /opt/android-sdk/cmdline-tools /opt/android-sdk/cmdline-tools/latest
+        
+        # 设置环境变量
+        echo "ANDROID_HOME=/opt/android-sdk" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
+        echo "/opt/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "/opt/android-sdk/platform-tools" >> $GITHUB_PATH
+        
+        # 接受许可证
+        yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+        
+        # 安装组件
+        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;28.0.3"
+        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-28"
+        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "ndk;25.2.9519653"
+        
+    - name: Setup JDK 11 for Gradle
       uses: actions/setup-java@v4
       with:
         java-version: '11'
         distribution: 'temurin'
-        
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      env:
-        SKIP_JDK_VERSION_CHECK: true
-        
-    - name: Install NDK
-      run: |
-        yes | sdkmanager "ndk;25.2.9519653"
-      env:
-        SKIP_JDK_VERSION_CHECK: true
         
     - name: Build MNN Libraries
       run: |
@@ -39,7 +56,7 @@ jobs:
         chmod +x ../build_64.sh
         ../build_64.sh
       env:
-        ANDROID_NDK: ${{ env.ANDROID_HOME }}/ndk/25.2.9519653
+        ANDROID_NDK: /opt/android-sdk/ndk/25.2.9519653
         
     - name: Build APK
       run: |
@@ -47,12 +64,13 @@ jobs:
         chmod +x gradlew
         
         # 创建 local.properties
-        echo "sdk.dir=$ANDROID_HOME" > local.properties
-        echo "ndk.dir=$ANDROID_HOME/ndk/25.2.9519653" >> local.properties
+        echo "sdk.dir=/opt/android-sdk" > local.properties
+        echo "ndk.dir=/opt/android-sdk/ndk/25.2.9519653" >> local.properties
         
         ./gradlew assembleDebug
       env:
-        ANDROID_NDK: ${{ env.ANDROID_HOME }}/ndk/25.2.9519653
+        ANDROID_NDK: /opt/android-sdk/ndk/25.2.9519653
+        ANDROID_HOME: /opt/android-sdk
         
     - name: Upload
       uses: actions/upload-artifact@v4
