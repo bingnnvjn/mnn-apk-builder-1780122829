@@ -57,6 +57,9 @@ jobs:
         echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
         echo "ndk.dir=/usr/local/lib/android/sdk/ndk/25.2.9519653" >> local.properties
         
+        # 验证 local.properties
+        cat local.properties
+        
         ./gradlew assembleDebug
       env:
         ANDROID_NDK: /usr/local/lib/android/sdk/ndk/25.2.9519653
