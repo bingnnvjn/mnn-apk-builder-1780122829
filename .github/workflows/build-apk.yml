@@ -20,6 +20,24 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         
+    - name: Download NDK
+      run: |
+        # 下载 NDK
+        wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip -O ndk.zip
+        
+        # 解压到当前目录
+        unzip -q ndk.zip
+        
+        # 移动到正确位置
+        sudo mkdir -p /usr/local/lib/android/sdk/ndk
+        sudo mv android-ndk-r25c /usr/local/lib/android/sdk/ndk/25.2.9519653
+        
+        # 清理
+        rm -f ndk.zip
+        
+        # 验证 NDK 目录结构
+        ls -la /usr/local/lib/android/sdk/ndk/25.2.9519653/
+        
     - name: Build MNN Libraries
       run: |
         cd MNN/project/android
