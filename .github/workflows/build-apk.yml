@@ -20,35 +20,30 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         
-    - name: Setup Android
-      uses: android-actions/setup-android@v3
-      
-    - name: Setup NDK
-      run: |
-        yes | sdkmanager "ndk;25.2.9519653"
-        echo "ANDROID_NDK=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
+    - name: Setup Android SDK and NDK
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r25c
         
-    - name: Build MNN
+    - name: Build MNN Libraries
       run: |
         cd MNN/project/android
-        mkdir build && cd build
-        cmake .. \
-          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-          -DANDROID_ABI="arm64-v8a" \
-          -DANDROID_PLATFORM=android-21 \
-          -DMNN_BUILD_FOR_ANDROID_COMMAND=true \
-          -DMNN_LOW_MEMORY=true \
-          -DMNN_BUILD_LLM=true \
-          -DMNN_SUPPORT_TRANSFORMER_FUSE=true \
-          -DLLM_SUPPORT_VISION=true \
-          -DMNN_BUILD_OPENCV=true
-        make -j4
+        mkdir -p build_64
+        cd build_64
+        chmod +x ../build_64.sh
+        ../build_64.sh
+      env:
+        ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
         
     - name: Build APK
       run: |
         cd MNN/project/android/demo
         chmod +x gradlew
         ./gradlew assembleDebug
+      env:
+        ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
         
     - name: Upload
       uses: actions/upload-artifact@v4
